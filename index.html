@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>STARTERS 夢幻單字闖關地圖</title>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <style>
+    :root {
+      --bg-top: #ffeef6;
+      --bg-mid: #f5f0ff;
+      --bg-bot: #eef9ff;
+      --card: #ffffff;
+      --pink: #ff6fa5;
+      --pink-dark: #e84c88;
+      --purple: #9b6bff;
+      --mint: #2ec4b6;
+      --gold: #ffb703;
+      --success: #22c55e;
+      --success-bg: #dcfce7;
+      --danger: #f43f5e;
+      --danger-bg: #ffe4e6;
+      --warning: #f59e0b;
+      --warning-bg: #fef3c7;
+      --text: #3b2d4a;
+      --muted: #7c6f8c;
+      --border: #f3d9e7;
+      --radius: 22px;
+      --shadow: 0 10px 28px rgba(180, 95, 145, 0.14);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      font-family: "Quicksand", "Nunito", "Noto Sans TC", "PingFang TC", sans-serif;
+      background:
+        radial-gradient(circle at 12% 10%, #ffd6e8 0%, transparent 32%),
+        radial-gradient(circle at 88% 18%, #e0d4ff 0%, transparent 34%),
+        radial-gradient(circle at 50% 85%, #d6f5ff 0%, transparent 40%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg-mid) 50%, var(--bg-bot) 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 2px solid var(--border);
+      padding: 12px 16px;
+    }
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 800;
+      font-size: 1.18rem;
+      color: var(--pink-dark);
+      cursor: pointer;
+    }
+    .brand-icon {
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #fff;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      box-shadow: 0 4px 12px rgba(255, 111, 165, 0.3);
+    }
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 999px;
+      padding: 10px 18px;
+      font-size: 0.98rem;
+      font-weight: 800;
+      min-height: 44px;
+      transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.15s ease;
+    }
+    button:active { transform: scale(0.96); }
+    .btn-pink {
+      background: linear-gradient(135deg, var(--pink), #ff8fb8);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(255, 111, 165, 0.32);
+    }
+    .btn-pink:hover { filter: brightness(1.04); transform: translateY(-1px); }
+    .btn-purple {
+      background: linear-gradient(135deg, var(--purple), #b388ff);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(155, 107, 255, 0.28);
+    }
+    .btn-mint {
+      background: linear-gradient(135deg, var(--mint), #5ce1d6);
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(46, 196, 182, 0.28);
+    }
+    .btn-soft {
+      background: #fff;
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+    .btn-soft:hover { background: #fff7fb; border-color: var(--pink); }
+    .btn-sm { padding: 7px 14px; font-size: 0.9rem; min-height: 38px; }
+    .container { max-width: 960px; margin: 0 auto; padding: 20px 16px 70px; }
+    .card {
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+      border: 2px solid var(--border);
+      margin-bottom: 20px;
+    }
+    .map-hero {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: linear-gradient(135deg, #fff5fa 0%, #f6f0ff 100%);
+    }
+    .map-hero h1 { margin: 0 0 6px; font-size: 1.52rem; color: var(--text); }
+    .map-hero p { margin: 0; color: var(--muted); font-weight: 600; }
+    .star-badge {
+      background: #fff;
+      border: 2px solid #ffe082;
+      color: #b45309;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 1rem;
+      box-shadow: 0 4px 12px rgba(255, 183, 3, 0.18);
+    }
+    .road-map-wrapper {
+      position: relative;
+      background: linear-gradient(180deg, #e8f8ee 0%, #f4f9ff 35%, #fff3f8 70%, #f6efff 100%);
+      border: 3px solid #f7cde0;
+      border-radius: 30px;
+      padding: 28px 16px 40px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .road-svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 1;
+    }
+    .road-nodes-list {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .road-row { display: flex; align-items: center; width: 100%; position: relative; }
+    .road-row.pos-left { justify-content: flex-start; padding-left: 4%; }
+    .road-row.pos-center { justify-content: center; }
+    .road-row.pos-right { justify-content: flex-end; padding-right: 4%; }
+    .road-station {
+      width: 270px;
+      max-width: 82%;
+      background: #fff;
+      border: 3.5px solid #ff9ec4;
+      border-radius: 26px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      box-shadow: 0 10px 22px rgba(232, 76, 136, 0.16);
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+      position: relative;
+    }
+    .road-station:hover {
+      transform: scale(1.04) translateY(-2px);
+      border-color: var(--pink-dark);
+      box-shadow: 0 14px 28px rgba(232, 76, 136, 0.25);
+    }
+    .road-station.cleared {
+      border-color: #34d399;
+      background: linear-gradient(135deg, #ffffff 0%, #ecfdf5 100%);
+    }
+    .road-station.next-target {
+      border-color: var(--gold);
+      box-shadow: 0 0 0 5px rgba(255, 183, 3, 0.25), 0 12px 24px rgba(232, 76, 136, 0.2);
+    }
+    .station-circle {
+      width: 52px;
+      height: 52px;
+      min-width: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.05rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.1;
+      box-shadow: 0 4px 10px rgba(155, 107, 255, 0.3);
+    }
+    .road-station.cleared .station-circle {
+      background: linear-gradient(135deg, #22c55e, #10b981);
+    }
+    .station-info { flex: 1; min-width: 0; }
+    .station-title {
+      font-weight: 800;
+      font-size: 0.96rem;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .station-meta { font-size: 0.82rem; color: var(--muted); font-weight: 700; margin-top: 2px; }
+    .avatar-pin {
+      position: absolute;
+      top: -16px;
+      right: 14px;
+      background: var(--gold);
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 2px 10px;
+      border-radius: 999px;
+      box-shadow: 0 4px 10px rgba(245, 158, 11, 0.35);
+      animation: bounce 1.4s infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    .scenery-deco { position: absolute; font-size: 1.7rem; pointer-events: none; opacity: 0.85; }
+    .stage-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .step-pill {
+      display: inline-block;
+      background: #fff0f6;
+      color: var(--pink-dark);
+      border: 1.5px solid #ffc2dc;
+      font-weight: 800;
+      font-size: 0.86rem;
+      padding: 4px 14px;
+      border-radius: 999px;
+      margin-bottom: 6px;
+    }
+    .review-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+    .vocab-card {
+      background: #fff;
+      border: 2px solid #f5d8e8;
+      border-radius: 20px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 10px;
+      box-shadow: 0 6px 16px rgba(155, 107, 255, 0.06);
+    }
+    .vocab-zh { font-size: 1.25rem; font-weight: 800; color: var(--text); }
+    .vocab-en { font-size: 1.15rem; font-weight: 800; color: var(--pink-dark); word-break: break-word; }
+    .progress-track {
+      width: 100%;
+      height: 12px;
+      background: #fce7f3;
+      border-radius: 999px;
+      overflow: hidden;
+      margin: 12px 0 18px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, var(--pink), var(--purple));
+      transition: width 0.25s ease;
+    }
+    .quiz-center { text-align: center; }
+    .zh-prompt-box {
+      background: linear-gradient(135deg, #fff7fb 0%, #f6f1ff 100%);
+      border: 2px dashed #f3b8d6;
+      border-radius: 22px;
+      padding: 18px 16px;
+      margin: 10px 0 16px;
+    }
+    .zh-prompt { font-size: 1.9rem; font-weight: 800; color: var(--text); margin: 4px 0 10px; }
+    .mode-switch {
+      display: inline-flex;
+      background: #fdf2f8;
+      border: 2px solid #f7cde0;
+      border-radius: 999px;
+      padding: 4px;
+      gap: 4px;
+      margin-bottom: 14px;
+    }
+    .mode-tab {
+      padding: 8px 16px;
+      min-height: 38px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 800;
+      background: transparent;
+      color: var(--muted);
+    }
+    .mode-tab.active {
+      background: linear-gradient(135deg, var(--pink), var(--purple));
+      color: #fff;
+      box-shadow: 0 4px 10px rgba(255, 111, 165, 0.25);
+    }
+    .letter-slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; margin: 12px 0 16px; }
+    .slot {
+      width: 36px;
+      height: 44px;
+      border-radius: 12px;
+      border: 2.5px solid #e6c6da;
+      background: #fff;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--pink-dark);
+      transition: all 0.14s ease;
+    }
+    .slot.filled { border-color: var(--pink); background: #fff0f6; transform: translateY(-2px); }
+    .slot.space-slot { width: 18px; border-color: transparent; background: transparent; }
+    .slot.symbol-slot { background: #faf5ff; border-color: #d8b4fe; color: var(--purple); }
+    .type-input {
+      width: 100%;
+      max-width: 420px;
+      padding: 13px 18px;
+      font-size: 1.2rem;
+      font-weight: 800;
+      text-align: center;
+      border-radius: 999px;
+      border: 2.5px solid #e5b8d1;
+      outline: none;
+      color: var(--text);
+      background: #fff;
+      letter-spacing: 1px;
+    }
+    .type-input:focus { border-color: var(--pink); box-shadow: 0 0 0 4px rgba(255, 111, 165, 0.16); }
+    .keypad { max-width: 560px; margin: 14px auto 0; display: flex; flex-direction: column; gap: 7px; user-select: none; }
+    .key-row { display: flex; justify-content: center; gap: 6px; }
+    .key-btn {
+      flex: 1;
+      max-width: 48px;
+      min-width: 28px;
+      height: 44px;
+      min-height: 44px;
+      padding: 0;
+      border-radius: 12px;
+      background: #fff8fc;
+      border: 2px solid #f0cde0;
+      color: var(--text);
+      font-size: 1rem;
+      font-weight: 800;
+      box-shadow: 0 3px 0 #ebd0e0;
+    }
+    .key-btn:hover:not(:disabled) { background: #ffe6f2; border-color: var(--pink); }
+    .key-btn.wide { max-width: 86px; font-size: 0.85rem; }
+    .handwrite-wrap { max-width: 540px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .canvas-box {
+      position: relative;
+      width: 100%;
+      border: 3px solid #f0b8d4;
+      border-radius: 22px;
+      background: #fffdf9;
+      overflow: hidden;
+      box-shadow: inset 0 2px 8px rgba(180, 95, 145, 0.08);
+      touch-action: none;
+    }
+    #write-canvas { display: block; width: 100%; height: 190px; cursor: crosshair; touch-action: none; }
+    .ocr-status { font-size: 0.9rem; font-weight: 700; color: var(--purple); min-height: 22px; }
+    .feedback-card { margin-top: 18px; padding: 16px; border-radius: 18px; text-align: left; display: none; }
+    .feedback-card.show { display: block; }
+    .feedback-card.ok { background: var(--success-bg); color: #14532d; border: 2px solid #86efac; }
+    .feedback-card.err { background: var(--danger-bg); color: #881337; border: 2px solid #fda4af; }
+    .wrong-box {
+      border: 2px solid #fecdd3;
+      background: #fff5f7;
+      border-radius: 18px;
+      padding: 14px 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      background: #4a2c58;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 999px;
+      font-size: 0.92rem;
+      font-weight: 700;
+      opacity: 0;
+      transition: all 0.25s ease;
+      z-index: 60;
+      pointer-events: none;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    @media (max-width: 560px) {
+      .zh-prompt { font-size: 1.5rem; }
+      .slot { width: 30px; height: 38px; font-size: 1.1rem; }
+      .key-btn { height: 40px; min-height: 40px; font-size: 0.9rem; }
+      .road-row.pos-left, .road-row.pos-right { justify-content: center; padding: 0; }
+      .road-station { width: 100%; max-width: 340px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-inner">
+      <div class="brand" onclick="goMap()">
+        <span class="brand-icon">✨ STARTERS</span>
+        <span>夢幻單字闖關地圖</span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-soft btn-sm" onclick="goMap()">🗺️ 闖關地圖首頁</button>
+      </div>
+    </div>
+  </header>
+  <main class="container" id="app"></main>
+  <div class="toast" id="toast"></div>
+  <script>
+    const WORDS = [{"id":1,"page":1,"title":"Animals-1","en":"cat","zh":"貓"},{"id":2,"page":1,"title":"Animals-1","en":"dog","zh":"狗"},{"id":3,"page":1,"title":"Animals-1","en":"frog","zh":"青蛙"},{"id":4,"page":1,"title":"Animals-1","en":"duck","zh":"鴨子"},{"id":5,"page":1,"title":"Animals-1","en":"fish","zh":"魚(單/複數)"},{"id":6,"page":1,"title":"Animals-1","en":"snake","zh":"蛇"},{"id":7,"page":1,"title":"Animals-1","en":"tail","zh":"尾巴"},{"id":8,"page":1,"title":"Animals-1","en":"goat","zh":"山羊"},{"id":9,"page":1,"title":"Animals-1","en":"sheep","zh":"綿羊(單/複數)"},{"id":10,"page":1,"title":"Animals-1","en":"horse","zh":"馬"},{"id":11,"page":1,"title":"Animals-1","en":"zoo","zh":"動物園"},{"id":12,"page":1,"title":"Animals-1","en":"cow","zh":"牛"},{"id":13,"page":1,"title":"Animals-1","en":"mouse","zh":"老鼠(單數)"},{"id":14,"page":1,"title":"Animals-1","en":"mice","zh":"老鼠(複數)"},{"id":15,"page":1,"title":"Animals-1","en":"bird","zh":"鳥"},{"id":16,"page":1,"title":"Animals-1","en":"hippo","zh":"河馬"},{"id":17,"page":2,"title":"Animals-2","en":"lizard","zh":"蜥蜴"},{"id":18,"page":2,"title":"Animals-2","en":"monkey","zh":"猴子"},{"id":19,"page":2,"title":"Animals-2","en":"spider","zh":"蜘蛛"},{"id":20,"page":2,"title":"Animals-2","en":"tiger","zh":"老虎"},{"id":21,"page":2,"title":"Animals-2","en":"chicken","zh":"雞"},{"id":22,"page":2,"title":"Animals-2","en":"giraffe","zh":"長頸鹿"},{"id":23,"page":2,"title":"Animals-2","en":"crocodile","zh":"鱷魚"},{"id":24,"page":2,"title":"Animals-2","en":"elephant","zh":"大象"},{"id":25,"page":2,"title":"Animals-2","en":"animal","zh":"動物"},{"id":26,"page":2,"title":"Animals-2","en":"bee","zh":"蜜蜂"},{"id":27,"page":2,"title":"Animals-2","en":"donkey","zh":"驢子"},{"id":28,"page":2,"title":"Animals-2","en":"jellyfish","zh":"水母"},{"id":29,"page":2,"title":"Animals-2","en":"bear","zh":"熊"},{"id":30,"page":2,"title":"Animals-2","en":"pet","zh":"寵物"},{"id":31,"page":2,"title":"Animals-2","en":"polar bear","zh":"北極熊"},{"id":32,"page":2,"title":"Animals-2","en":"zebra","zh":"斑馬"},{"id":33,"page":3,"title":"The Body and The Face","en":"leg","zh":"腿"},{"id":34,"page":3,"title":"The Body and The Face","en":"hand","zh":"手"},{"id":35,"page":3,"title":"The Body and The Face","en":"foot","zh":"腳"},{"id":36,"page":3,"title":"The Body and The Face","en":"feet","zh":"腳(複數)"},{"id":37,"page":3,"title":"The Body and The Face","en":"nose","zh":"鼻子"},{"id":38,"page":3,"title":"The Body and The Face","en":"face","zh":"臉"},{"id":39,"page":3,"title":"The Body and The Face","en":"smile","zh":"微笑"},{"id":40,"page":3,"title":"The Body and The Face","en":"mouth","zh":"嘴巴"},{"id":41,"page":3,"title":"The Body and The Face","en":"arm","zh":"手臂"},{"id":42,"page":3,"title":"The Body and The Face","en":"ear","zh":"耳朵"},{"id":43,"page":3,"title":"The Body and The Face","en":"eye","zh":"眼睛"},{"id":44,"page":3,"title":"The Body and The Face","en":"head","zh":"頭"},{"id":45,"page":3,"title":"The Body and The Face","en":"hair","zh":"頭髮"},{"id":46,"page":3,"title":"The Body and The Face","en":"body","zh":"身體"},{"id":47,"page":4,"title":"Clothes","en":"hat","zh":"帽子"},{"id":48,"page":4,"title":"Clothes","en":"sock","zh":"襪子"},{"id":49,"page":4,"title":"Clothes","en":"dress","zh":"洋裝"},{"id":50,"page":4,"title":"Clothes","en":"glasses","zh":"眼鏡"},{"id":51,"page":4,"title":"Clothes","en":"jeans","zh":"牛仔褲"},{"id":52,"page":4,"title":"Clothes","en":"shoe","zh":"鞋子"},{"id":53,"page":4,"title":"Clothes","en":"shirt","zh":"襯衫"},{"id":54,"page":4,"title":"Clothes","en":"skirt","zh":"裙子"},{"id":55,"page":4,"title":"Clothes","en":"watch","zh":"手錶"},{"id":56,"page":4,"title":"Clothes","en":"wear","zh":"穿戴"},{"id":57,"page":4,"title":"Clothes","en":"clothes","zh":"衣服"},{"id":58,"page":4,"title":"Clothes","en":"T-shirt","zh":"T恤"},{"id":59,"page":4,"title":"Clothes","en":"handbag","zh":"手提包"},{"id":60,"page":4,"title":"Clothes","en":"jacket","zh":"夾克"},{"id":61,"page":4,"title":"Clothes","en":"trousers","zh":"長褲"},{"id":62,"page":4,"title":"Clothes","en":"bag","zh":"袋子"},{"id":63,"page":4,"title":"Clothes","en":"boot","zh":"靴子"},{"id":64,"page":4,"title":"Clothes","en":"baseball cap","zh":"棒球帽"},{"id":65,"page":4,"title":"Clothes","en":"shorts","zh":"短褲"},{"id":66,"page":5,"title":"Colours","en":"red","zh":"紅色"},{"id":67,"page":5,"title":"Colours","en":"black","zh":"黑色"},{"id":68,"page":5,"title":"Colours","en":"blue","zh":"藍色"},{"id":69,"page":5,"title":"Colours","en":"green","zh":"綠色"},{"id":70,"page":5,"title":"Colours","en":"pink","zh":"粉紅色"},{"id":71,"page":5,"title":"Colours","en":"grey (UK)","zh":"灰色"},{"id":72,"page":5,"title":"Colours","en":"gray (US)","zh":"灰色"},{"id":73,"page":5,"title":"Colours","en":"white","zh":"白色"},{"id":74,"page":5,"title":"Colours","en":"brown","zh":"咖啡色"},{"id":75,"page":5,"title":"Colours","en":"colour (UK)","zh":"顏色"},{"id":76,"page":5,"title":"Colours","en":"color (US)","zh":"顏色"},{"id":77,"page":5,"title":"Colours","en":"orange","zh":"橘色"},{"id":78,"page":5,"title":"Colours","en":"purple","zh":"紫色"},{"id":79,"page":5,"title":"Colours","en":"yellow","zh":"黃色"},{"id":80,"page":6,"title":"Time","en":"clock","zh":"時鐘"},{"id":81,"page":6,"title":"Time","en":"day","zh":"白天"},{"id":82,"page":6,"title":"Time","en":"end","zh":"結束"},{"id":83,"page":6,"title":"Time","en":"watch","zh":"手錶"},{"id":84,"page":6,"title":"Time","en":"night","zh":"晚上"},{"id":85,"page":6,"title":"Time","en":"in","zh":"在…"},{"id":86,"page":6,"title":"Time","en":"morning","zh":"早上"},{"id":87,"page":6,"title":"Time","en":"afternoon","zh":"下午"},{"id":88,"page":6,"title":"Time","en":"evening","zh":"傍晚"},{"id":89,"page":6,"title":"Time","en":"birthday","zh":"生日"},{"id":90,"page":6,"title":"Time","en":"today","zh":"今天"},{"id":91,"page":6,"title":"Time","en":"year","zh":"年"},{"id":92,"page":7,"title":"Family & Friends-1","en":"boy","zh":"男孩"},{"id":93,"page":7,"title":"Family & Friends-1","en":"girl","zh":"女孩"},{"id":94,"page":7,"title":"Family & Friends-1","en":"old","zh":"老的"},{"id":95,"page":7,"title":"Family & Friends-1","en":"young","zh":"年輕的"},{"id":96,"page":7,"title":"Family & Friends-1","en":"baby","zh":"嬰兒"},{"id":97,"page":7,"title":"Family & Friends-1","en":"child","zh":"小孩(單數)"},{"id":98,"page":7,"title":"Family & Friends-1","en":"children","zh":"小孩(複數)"},{"id":99,"page":7,"title":"Family & Friends-1","en":"dad/daddy","zh":"爸爸"},{"id":100,"page":7,"title":"Family & Friends-1","en":"father","zh":"父親"},{"id":101,"page":7,"title":"Family & Friends-1","en":"mum/mummy","zh":"媽咪"},{"id":102,"page":7,"title":"Family & Friends-1","en":"mother","zh":"母親"},{"id":103,"page":7,"title":"Family & Friends-1","en":"grandma","zh":"阿嬤/外婆"},{"id":104,"page":7,"title":"Family & Friends-1","en":"grandmother","zh":"祖母/外婆"},{"id":105,"page":7,"title":"Family & Friends-1","en":"grandpa","zh":"阿公/外公"},{"id":106,"page":8,"title":"Family & Friends-2","en":"grandfather","zh":"祖父/外公"},{"id":107,"page":8,"title":"Family & Friends-2","en":"sister","zh":"姐妹"},{"id":108,"page":8,"title":"Family & Friends-2","en":"brother","zh":"兄弟"},{"id":109,"page":8,"title":"Family & Friends-2","en":"cousin","zh":"堂表兄弟姐妹"},{"id":110,"page":8,"title":"Family & Friends-2","en":"family","zh":"家庭"},{"id":111,"page":8,"title":"Family & Friends-2","en":"friend","zh":"朋友"},{"id":112,"page":8,"title":"Family & Friends-2","en":"live","zh":"住"},{"id":113,"page":8,"title":"Family & Friends-2","en":"man","zh":"男人(單數)"},{"id":114,"page":8,"title":"Family & Friends-2","en":"men","zh":"男人(複數)"},{"id":115,"page":8,"title":"Family & Friends-2","en":"woman","zh":"女人(單數)"},{"id":116,"page":8,"title":"Family & Friends-2","en":"women","zh":"女人(複數)"},{"id":117,"page":8,"title":"Family & Friends-2","en":"person","zh":"人(單數)"},{"id":118,"page":8,"title":"Family & Friends-2","en":"people","zh":"人(複數)"},{"id":119,"page":8,"title":"Family & Friends-2","en":"kid","zh":"小孩"},{"id":120,"page":8,"title":"Family & Friends-2","en":"classmate","zh":"同學"},{"id":121,"page":9,"title":"Places & Directions","en":"in","zh":"在…裡面"},{"id":122,"page":9,"title":"Places & Directions","en":"on","zh":"在…上面"},{"id":123,"page":9,"title":"Places & Directions","en":"under","zh":"在…下面"},{"id":124,"page":9,"title":"Places & Directions","en":"next to","zh":"在…旁邊"},{"id":125,"page":9,"title":"Places & Directions","en":"behind","zh":"在…後面"},{"id":126,"page":9,"title":"Places & Directions","en":"between","zh":"在…之間"},{"id":127,"page":9,"title":"Places & Directions","en":"in front of","zh":"在…前面"},{"id":128,"page":9,"title":"Places & Directions","en":"park","zh":"公園"},{"id":129,"page":9,"title":"Places & Directions","en":"shop (UK)","zh":"商店"},{"id":130,"page":9,"title":"Places & Directions","en":"store (US)","zh":"商店"},{"id":131,"page":9,"title":"Places & Directions","en":"here","zh":"這裡"},{"id":132,"page":9,"title":"Places & Directions","en":"there","zh":"那裡"},{"id":133,"page":9,"title":"Places & Directions","en":"street","zh":"街道"},{"id":134,"page":9,"title":"Places & Directions","en":"end","zh":"盡頭"},{"id":135,"page":9,"title":"Places & Directions","en":"zoo","zh":"動物園"},{"id":136,"page":9,"title":"Places & Directions","en":"playground","zh":"遊樂場"},{"id":137,"page":10,"title":"Food & Drink-1","en":"eat","zh":"吃"},{"id":138,"page":10,"title":"Food & Drink-1","en":"drink","zh":"喝"},{"id":139,"page":10,"title":"Food & Drink-1","en":"milk","zh":"牛奶"},{"id":140,"page":10,"title":"Food & Drink-1","en":"egg","zh":"蛋"},{"id":141,"page":10,"title":"Food & Drink-1","en":"fish","zh":"魚"},{"id":142,"page":10,"title":"Food & Drink-1","en":"cake","zh":"蛋糕"},{"id":143,"page":10,"title":"Food & Drink-1","en":"grape","zh":"葡萄"},{"id":144,"page":10,"title":"Food & Drink-1","en":"lime","zh":"萊姆"},{"id":145,"page":10,"title":"Food & Drink-1","en":"rice","zh":"飯"},{"id":146,"page":10,"title":"Food & Drink-1","en":"bean","zh":"豆子"},{"id":147,"page":10,"title":"Food & Drink-1","en":"food","zh":"食物"},{"id":148,"page":10,"title":"Food & Drink-1","en":"fruit","zh":"水果"},{"id":149,"page":10,"title":"Food & Drink-1","en":"juice","zh":"果汁"},{"id":150,"page":10,"title":"Food & Drink-1","en":"meat","zh":"肉"},{"id":151,"page":10,"title":"Food & Drink-1","en":"pea","zh":"豌豆"},{"id":152,"page":10,"title":"Food & Drink-1","en":"pear","zh":"梨子"},{"id":153,"page":10,"title":"Food & Drink-1","en":"bread","zh":"麵包"},{"id":154,"page":10,"title":"Food & Drink-1","en":"apple","zh":"蘋果"},{"id":155,"page":11,"title":"Food & Drink-2","en":"chips (UK)","zh":"洋芋片/薯條"},{"id":156,"page":11,"title":"Food & Drink-2","en":"fries (US)","zh":"薯條"},{"id":157,"page":11,"title":"Food & Drink-2","en":"banana","zh":"香蕉"},{"id":158,"page":11,"title":"Food & Drink-2","en":"burger","zh":"漢堡"},{"id":159,"page":11,"title":"Food & Drink-2","en":"carrot","zh":"紅蘿蔔"},{"id":160,"page":11,"title":"Food & Drink-2","en":"chicken","zh":"雞肉"},{"id":161,"page":11,"title":"Food & Drink-2","en":"coconut","zh":"椰子"},{"id":162,"page":11,"title":"Food & Drink-2","en":"ice cream","zh":"冰淇淋"},{"id":163,"page":11,"title":"Food & Drink-2","en":"onion","zh":"洋蔥"},{"id":164,"page":11,"title":"Food & Drink-2","en":"lemon","zh":"檸檬"},{"id":165,"page":11,"title":"Food & Drink-2","en":"lemonade","zh":"檸檬水"},{"id":166,"page":11,"title":"Food & Drink-2","en":"mango","zh":"芒果"},{"id":167,"page":11,"title":"Food & Drink-2","en":"orange","zh":"柳橙"},{"id":168,"page":11,"title":"Food & Drink-2","en":"potato","zh":"馬鈴薯"},{"id":169,"page":11,"title":"Food & Drink-2","en":"tomato","zh":"蕃茄"},{"id":170,"page":11,"title":"Food & Drink-2","en":"water","zh":"水"},{"id":171,"page":11,"title":"Food & Drink-2","en":"watermelon","zh":"西瓜"},{"id":172,"page":11,"title":"Food & Drink-2","en":"sausage","zh":"香腸"},{"id":173,"page":12,"title":"Food & Drink-3","en":"breakfast","zh":"早餐"},{"id":174,"page":12,"title":"Food & Drink-3","en":"lunch","zh":"午餐"},{"id":175,"page":12,"title":"Food & Drink-3","en":"dinner","zh":"晚餐"},{"id":176,"page":12,"title":"Food & Drink-3","en":"supper","zh":"晚餐/宵夜"},{"id":177,"page":12,"title":"Food & Drink-3","en":"pineapple","zh":"鳳梨"},{"id":178,"page":12,"title":"Food & Drink-3","en":"pie","zh":"派"},{"id":179,"page":12,"title":"Food & Drink-3","en":"sweet(s) (UK)","zh":"糖果"},{"id":180,"page":12,"title":"Food & Drink-3","en":"candy (US)","zh":"糖果"},{"id":181,"page":12,"title":"Food & Drink-3","en":"chocolate","zh":"巧克力"},{"id":182,"page":12,"title":"Food & Drink-3","en":"meatballs","zh":"肉丸"},{"id":183,"page":12,"title":"Food & Drink-3","en":"kiwi","zh":"奇異果"},{"id":184,"page":13,"title":"The Home-1","en":"mat","zh":"墊子"},{"id":185,"page":13,"title":"The Home-1","en":"lamp","zh":"檯燈"},{"id":186,"page":13,"title":"The Home-1","en":"bed","zh":"床"},{"id":187,"page":13,"title":"The Home-1","en":"desk","zh":"書桌"},{"id":188,"page":13,"title":"The Home-1","en":"box","zh":"盒子"},{"id":189,"page":13,"title":"The Home-1","en":"flat (UK)","zh":"公寓"},{"id":190,"page":13,"title":"The Home-1","en":"clock","zh":"時鐘"},{"id":191,"page":13,"title":"The Home-1","en":"bath","zh":"洗澡"},{"id":192,"page":13,"title":"The Home-1","en":"tree","zh":"樹"},{"id":193,"page":13,"title":"The Home-1","en":"sleep","zh":"睡覺"},{"id":194,"page":13,"title":"The Home-1","en":"house","zh":"房子"},{"id":195,"page":13,"title":"The Home-1","en":"toy","zh":"玩具"},{"id":196,"page":13,"title":"The Home-1","en":"room","zh":"房間"},{"id":197,"page":13,"title":"The Home-1","en":"door","zh":"門"},{"id":198,"page":13,"title":"The Home-1","en":"wall","zh":"牆"},{"id":199,"page":13,"title":"The Home-1","en":"hall","zh":"走廊"},{"id":200,"page":13,"title":"The Home-1","en":"doll","zh":"洋娃娃"},{"id":201,"page":13,"title":"The Home-1","en":"watch","zh":"手錶"},{"id":202,"page":13,"title":"The Home-1","en":"chair","zh":"椅子"},{"id":203,"page":13,"title":"The Home-1","en":"sofa","zh":"沙發"},{"id":204,"page":13,"title":"The Home-1","en":"table","zh":"桌子"},{"id":205,"page":13,"title":"The Home-1","en":"phone","zh":"電話"},{"id":206,"page":14,"title":"The Home-2","en":"radio","zh":"收音機"},{"id":207,"page":14,"title":"The Home-2","en":"flower","zh":"花"},{"id":208,"page":14,"title":"The Home-2","en":"garden","zh":"花園"},{"id":209,"page":14,"title":"The Home-2","en":"window","zh":"窗戶"},{"id":210,"page":14,"title":"The Home-2","en":"mirror","zh":"鏡子"},{"id":211,"page":14,"title":"The Home-2","en":"kitchen","zh":"廚房"},{"id":212,"page":14,"title":"The Home-2","en":"picture","zh":"圖片"},{"id":213,"page":14,"title":"The Home-2","en":"camera","zh":"照相機"},{"id":214,"page":14,"title":"The Home-2","en":"armchair","zh":"扶手椅"},{"id":215,"page":14,"title":"The Home-2","en":"bathroom","zh":"浴室"},{"id":216,"page":14,"title":"The Home-2","en":"bedroom","zh":"臥室"},{"id":217,"page":14,"title":"The Home-2","en":"apartment (US)","zh":"公寓"},{"id":218,"page":14,"title":"The Home-2","en":"bookcase","zh":"書櫃"},{"id":219,"page":14,"title":"The Home-2","en":"computer","zh":"電腦"},{"id":220,"page":14,"title":"The Home-2","en":"cupboard","zh":"廚櫃"},{"id":221,"page":14,"title":"The Home-2","en":"dining room","zh":"飯廳"},{"id":222,"page":14,"title":"The Home-2","en":"living room","zh":"客廳"},{"id":223,"page":14,"title":"The Home-2","en":"painting","zh":"畫畫"},{"id":224,"page":14,"title":"The Home-2","en":"television / TV","zh":"電視機"},{"id":225,"page":14,"title":"The Home-2","en":"rug","zh":"地毯"},{"id":226,"page":14,"title":"The Home-2","en":"home","zh":"家"},{"id":227,"page":15,"title":"School-1","en":"pen","zh":"原子筆"},{"id":228,"page":15,"title":"School-1","en":"book","zh":"書"},{"id":229,"page":15,"title":"School-1","en":"look","zh":"看"},{"id":230,"page":15,"title":"School-1","en":"ask","zh":"問"},{"id":231,"page":15,"title":"School-1","en":"class","zh":"課"},{"id":232,"page":15,"title":"School-1","en":"tick","zh":"打勾"},{"id":233,"page":15,"title":"School-1","en":"read","zh":"讀"},{"id":234,"page":15,"title":"School-1","en":"tell","zh":"告訴"},{"id":235,"page":15,"title":"School-1","en":"test","zh":"考試"},{"id":236,"page":15,"title":"School-1","en":"line","zh":"線"},{"id":237,"page":15,"title":"School-1","en":"spell","zh":"拼字"},{"id":238,"page":15,"title":"School-1","en":"page","zh":"頁"},{"id":239,"page":15,"title":"School-1","en":"draw","zh":"畫畫"},{"id":240,"page":15,"title":"School-1","en":"find","zh":"發現"},{"id":241,"page":15,"title":"School-1","en":"part","zh":"部分"},{"id":242,"page":15,"title":"School-1","en":"know","zh":"知道"},{"id":243,"page":15,"title":"School-1","en":"open","zh":"打開"},{"id":244,"page":15,"title":"School-1","en":"ruler","zh":"直尺"},{"id":245,"page":15,"title":"School-1","en":"write","zh":"寫字"},{"id":246,"page":15,"title":"School-1","en":"cross","zh":"通過"},{"id":247,"page":15,"title":"School-1","en":"close","zh":"關"},{"id":248,"page":15,"title":"School-1","en":"word","zh":"字"},{"id":249,"page":16,"title":"School-2","en":"learn","zh":"學習"},{"id":250,"page":16,"title":"School-2","en":"color","zh":"顏色"},{"id":251,"page":16,"title":"School-2","en":"school","zh":"學校"},{"id":252,"page":16,"title":"School-2","en":"pencil","zh":"鉛筆"},{"id":253,"page":16,"title":"School-2","en":"story","zh":"故事"},{"id":254,"page":16,"title":"School-2","en":"floor","zh":"樓層"},{"id":255,"page":16,"title":"School-2","en":"teacher","zh":"老師"},{"id":256,"page":16,"title":"School-2","en":"rubber (UK)","zh":"橡皮擦"},{"id":257,"page":16,"title":"School-2","en":"number","zh":"號碼"},{"id":258,"page":16,"title":"School-2","en":"picture","zh":"圖畫"},{"id":259,"page":16,"title":"School-2","en":"eraser (US)","zh":"橡皮擦"},{"id":260,"page":16,"title":"School-2","en":"playground","zh":"遊樂場"},{"id":261,"page":16,"title":"School-2","en":"bookcase","zh":"書架"},{"id":262,"page":16,"title":"School-2","en":"classroom","zh":"教室"},{"id":263,"page":16,"title":"School-2","en":"letter","zh":"字母"},{"id":264,"page":16,"title":"School-2","en":"lesson","zh":"課"},{"id":265,"page":16,"title":"School-2","en":"window","zh":"窗戶"},{"id":266,"page":16,"title":"School-2","en":"correct","zh":"正確的"},{"id":267,"page":16,"title":"School-2","en":"listen (to)","zh":"聽"},{"id":268,"page":16,"title":"School-2","en":"English","zh":"英文"},{"id":269,"page":16,"title":"School-2","en":"answer","zh":"答案"},{"id":270,"page":16,"title":"School-2","en":"question","zh":"問題"},{"id":271,"page":17,"title":"School-3","en":"computer","zh":"電腦"},{"id":272,"page":17,"title":"School-3","en":"sentence","zh":"句子"},{"id":273,"page":17,"title":"School-3","en":"cupboard","zh":"碗櫥"},{"id":274,"page":17,"title":"School-3","en":"understand","zh":"了解"},{"id":275,"page":17,"title":"School-3","en":"alphabet","zh":"字母"},{"id":276,"page":17,"title":"School-3","en":"example","zh":"例子"},{"id":277,"page":17,"title":"School-3","en":"right","zh":"對的"},{"id":278,"page":17,"title":"School-3","en":"board","zh":"黑/白板"},{"id":279,"page":17,"title":"School-3","en":"crayon","zh":"蠟筆"},{"id":280,"page":17,"title":"School-3","en":"door","zh":"門"},{"id":281,"page":17,"title":"School-3","en":"painting","zh":"水彩畫"},{"id":282,"page":17,"title":"School-3","en":"poster","zh":"海報"},{"id":283,"page":17,"title":"School-3","en":"stand","zh":"站"},{"id":284,"page":17,"title":"School-3","en":"mouse","zh":"滑鼠"},{"id":285,"page":17,"title":"School-3","en":"desk","zh":"書桌"},{"id":286,"page":17,"title":"School-3","en":"keyboard","zh":"鍵盤"},{"id":287,"page":17,"title":"School-3","en":"music","zh":"音樂"},{"id":288,"page":17,"title":"School-3","en":"paper","zh":"紙"},{"id":289,"page":17,"title":"School-3","en":"sit","zh":"坐"},{"id":290,"page":17,"title":"School-3","en":"wall","zh":"牆"},{"id":291,"page":18,"title":"Sports & Leisure-1","en":"hit","zh":"打擊"},{"id":292,"page":18,"title":"Sports & Leisure-1","en":"run","zh":"跑"},{"id":293,"page":18,"title":"Sports & Leisure-1","en":"jump","zh":"跳"},{"id":294,"page":18,"title":"Sports & Leisure-1","en":"kick","zh":"踢"},{"id":295,"page":18,"title":"Sports & Leisure-1","en":"boat","zh":"船"},{"id":296,"page":18,"title":"Sports & Leisure-1","en":"game","zh":"遊戲"},{"id":297,"page":18,"title":"Sports & Leisure-1","en":"bike","zh":"腳踏車"},{"id":298,"page":18,"title":"Sports & Leisure-1","en":"kite","zh":"風箏"},{"id":299,"page":18,"title":"Sports & Leisure-1","en":"ride","zh":"騎"},{"id":300,"page":18,"title":"Sports & Leisure-1","en":"book","zh":"書本"},{"id":301,"page":18,"title":"Sports & Leisure-1","en":"fly","zh":"飛"},{"id":302,"page":18,"title":"Sports & Leisure-1","en":"toy","zh":"玩具"},{"id":303,"page":18,"title":"Sports & Leisure-1","en":"fish(ing)","zh":"釣魚"},{"id":304,"page":18,"title":"Sports & Leisure-1","en":"draw(ing)","zh":"畫畫"},{"id":305,"page":18,"title":"Sports & Leisure-1","en":"paint(ing)","zh":"著色"},{"id":306,"page":18,"title":"Sports & Leisure-1","en":"read","zh":"讀"},{"id":307,"page":18,"title":"Sports & Leisure-1","en":"play (with)","zh":"玩"},{"id":308,"page":18,"title":"Sports & Leisure-1","en":"sing","zh":"唱歌"},{"id":309,"page":18,"title":"Sports & Leisure-1","en":"song","zh":"歌曲"},{"id":310,"page":18,"title":"Sports & Leisure-1","en":"beach","zh":"海邊"},{"id":311,"page":18,"title":"Sports & Leisure-1","en":"watch","zh":"看"},{"id":312,"page":18,"title":"Sports & Leisure-1","en":"badminton","zh":"羽毛球"},{"id":313,"page":19,"title":"Sports & Leisure-2","en":"football (UK)","zh":"足球"},{"id":314,"page":19,"title":"Sports & Leisure-2","en":"soccer (US)","zh":"足球"},{"id":315,"page":19,"title":"Sports & Leisure-2","en":"catch","zh":"接住"},{"id":316,"page":19,"title":"Sports & Leisure-2","en":"sport","zh":"運動"},{"id":317,"page":19,"title":"Sports & Leisure-2","en":"throw","zh":"丟"},{"id":318,"page":19,"title":"Sports & Leisure-2","en":"bounce","zh":"拍球"},{"id":319,"page":19,"title":"Sports & Leisure-2","en":"baseball","zh":"棒球"},{"id":320,"page":19,"title":"Sports & Leisure-2","en":"story","zh":"故事"},{"id":321,"page":19,"title":"Sports & Leisure-2","en":"tennis","zh":"網球"},{"id":322,"page":19,"title":"Sports & Leisure-2","en":"piano","zh":"鋼琴"},{"id":323,"page":19,"title":"Sports & Leisure-2","en":"radio","zh":"收音機"},{"id":324,"page":19,"title":"Sports & Leisure-2","en":"hobby","zh":"嗜好"},{"id":325,"page":19,"title":"Sports & Leisure-2","en":"enjoy","zh":"喜愛"},{"id":326,"page":19,"title":"Sports & Leisure-2","en":"guitar","zh":"吉他"},{"id":327,"page":19,"title":"Sports & Leisure-2","en":"picture","zh":"圖畫"},{"id":328,"page":19,"title":"Sports & Leisure-2","en":"hockey","zh":"曲棍球"},{"id":329,"page":19,"title":"Sports & Leisure-2","en":"camera","zh":"照相機"},{"id":330,"page":19,"title":"Sports & Leisure-2","en":"table tennis","zh":"桌球"},{"id":331,"page":20,"title":"Sports & Leisure-3","en":"basketball","zh":"籃球"},{"id":332,"page":20,"title":"Sports & Leisure-3","en":"photo","zh":"照片"},{"id":333,"page":20,"title":"Sports & Leisure-3","en":"favorite","zh":"喜愛的"},{"id":334,"page":20,"title":"Sports & Leisure-3","en":"swim","zh":"游泳"},{"id":335,"page":20,"title":"Sports & Leisure-3","en":"bat","zh":"球棒"},{"id":336,"page":20,"title":"Sports & Leisure-3","en":"ball","zh":"球"},{"id":337,"page":20,"title":"Sports & Leisure-3","en":"book","zh":"書"},{"id":338,"page":20,"title":"Sports & Leisure-3","en":"doll","zh":"洋娃娃"},{"id":339,"page":20,"title":"Sports & Leisure-3","en":"drive","zh":"開車"},{"id":340,"page":20,"title":"Sports & Leisure-3","en":"listen","zh":"聽"},{"id":341,"page":20,"title":"Sports & Leisure-3","en":"music","zh":"音樂"},{"id":342,"page":20,"title":"Sports & Leisure-3","en":"run","zh":"跑"},{"id":343,"page":20,"title":"Sports & Leisure-3","en":"skateboard(ing)","zh":"溜滑板"},{"id":344,"page":20,"title":"Sports & Leisure-3","en":"walk","zh":"走"},{"id":345,"page":20,"title":"Sports & Leisure-3","en":"take a photo/picture","zh":"拍照"},{"id":346,"page":21,"title":"Toys","en":"car","zh":"汽車"},{"id":347,"page":21,"title":"Toys","en":"toy","zh":"玩具"},{"id":348,"page":21,"title":"Toys","en":"ball","zh":"球"},{"id":349,"page":21,"title":"Toys","en":"doll","zh":"洋娃娃"},{"id":350,"page":21,"title":"Toys","en":"game","zh":"遊戲"},{"id":351,"page":21,"title":"Toys","en":"train","zh":"火車"},{"id":352,"page":21,"title":"Toys","en":"helicopter","zh":"直昇機"},{"id":353,"page":21,"title":"Toys","en":"truck (US)","zh":"卡車"},{"id":354,"page":21,"title":"Toys","en":"lorry (UK)","zh":"卡車"},{"id":355,"page":21,"title":"Toys","en":"robot","zh":"機器人"},{"id":356,"page":21,"title":"Toys","en":"monster","zh":"怪物"},{"id":357,"page":21,"title":"Toys","en":"basketball","zh":"籃球"},{"id":358,"page":21,"title":"Toys","en":"alien","zh":"外星人"},{"id":359,"page":21,"title":"Toys","en":"teddy (bear)","zh":"泰迪熊"},{"id":360,"page":21,"title":"Toys","en":"balloon","zh":"氣球"},{"id":361,"page":21,"title":"Toys","en":"boat","zh":"船"},{"id":362,"page":21,"title":"Toys","en":"soccer (US)","zh":"足球"},{"id":363,"page":21,"title":"Toys","en":"football (US)","zh":"橄欖球"},{"id":364,"page":21,"title":"Toys","en":"motorbike","zh":"摩托車"},{"id":365,"page":21,"title":"Toys","en":"plane","zh":"飛機"},{"id":366,"page":21,"title":"Toys","en":"baseball","zh":"棒球"},{"id":367,"page":22,"title":"Transport","en":"bus","zh":"公車"},{"id":368,"page":22,"title":"Transport","en":"run","zh":"跑"},{"id":369,"page":22,"title":"Transport","en":"go","zh":"去"},{"id":370,"page":22,"title":"Transport","en":"fly","zh":"開(飛機)"},{"id":371,"page":22,"title":"Transport","en":"car","zh":"車"},{"id":372,"page":22,"title":"Transport","en":"plane","zh":"飛機"},{"id":373,"page":22,"title":"Transport","en":"swim","zh":"游泳"},{"id":374,"page":22,"title":"Transport","en":"boat","zh":"小船"},{"id":375,"page":22,"title":"Transport","en":"motorbike","zh":"機車"},{"id":376,"page":22,"title":"Transport","en":"ride","zh":"騎"},{"id":377,"page":22,"title":"Transport","en":"bike","zh":"腳踏車"},{"id":378,"page":22,"title":"Transport","en":"train","zh":"火車"},{"id":379,"page":22,"title":"Transport","en":"ship","zh":"船"},{"id":380,"page":22,"title":"Transport","en":"truck (US)","zh":"卡車"},{"id":381,"page":22,"title":"Transport","en":"lorry (UK)","zh":"貨車"},{"id":382,"page":23,"title":"The World Around Us","en":"sun","zh":"太陽"},{"id":383,"page":23,"title":"The World Around Us","en":"sand","zh":"沙子"},{"id":384,"page":23,"title":"The World Around Us","en":"shell","zh":"貝殼"},{"id":385,"page":23,"title":"The World Around Us","en":"sea","zh":"海"},{"id":386,"page":23,"title":"The World Around Us","en":"beach","zh":"海灘"},{"id":387,"page":23,"title":"The World Around Us","en":"water","zh":"水"},{"id":388,"page":23,"title":"The World Around Us","en":"street","zh":"街"},{"id":389,"page":23,"title":"The World Around Us","en":"tree","zh":"樹"},{"id":390,"page":23,"title":"Nouns","en":"arm","zh":"手臂"},{"id":391,"page":23,"title":"Nouns","en":"baby","zh":"嬰兒"},{"id":392,"page":23,"title":"Nouns","en":"apple","zh":"蘋果"},{"id":393,"page":23,"title":"Nouns","en":"armchair","zh":"扶手椅"},{"id":394,"page":23,"title":"Nouns","en":"animal","zh":"動物"},{"id":395,"page":23,"title":"Nouns","en":"apartment (US)","zh":"公寓"},{"id":396,"page":23,"title":"Nouns","en":"answer","zh":"答案"},{"id":397,"page":23,"title":"Nouns","en":"alphabet","zh":"字母"},{"id":398,"page":24,"title":"Determiners","en":"a/an","zh":"(個)"},{"id":399,"page":24,"title":"Determiners","en":"no","zh":"不"},{"id":400,"page":24,"title":"Determiners","en":"one","zh":"一"},{"id":401,"page":24,"title":"Determiners","en":"the","zh":"這個/那個"},{"id":402,"page":24,"title":"Determiners","en":"this","zh":"這"},{"id":403,"page":24,"title":"Determiners","en":"that","zh":"那"},{"id":404,"page":24,"title":"Determiners","en":"these","zh":"這些"},{"id":405,"page":24,"title":"Determiners","en":"those","zh":"那些"},{"id":406,"page":24,"title":"Determiners","en":"some","zh":"一些"},{"id":407,"page":24,"title":"Determiners","en":"many","zh":"很多"},{"id":408,"page":24,"title":"Determiners","en":"lots of","zh":"很多"},{"id":409,"page":24,"title":"Determiners","en":"a lot of","zh":"很多"},{"id":410,"page":25,"title":"Adjectives-1","en":"happy","zh":"開心的"},{"id":411,"page":25,"title":"Adjectives-1","en":"ugly","zh":"醜陋的"},{"id":412,"page":25,"title":"Adjectives-1","en":"funny","zh":"有趣的"},{"id":413,"page":25,"title":"Adjectives-1","en":"great","zh":"極好的"},{"id":414,"page":25,"title":"Adjectives-1","en":"angry","zh":"生氣的"},{"id":415,"page":25,"title":"Adjectives-1","en":"long","zh":"長的"},{"id":416,"page":25,"title":"Adjectives-1","en":"dirty","zh":"骯髒的"},{"id":417,"page":25,"title":"Adjectives-1","en":"good","zh":"好的"},{"id":418,"page":25,"title":"Adjectives-1","en":"favorite","zh":"最喜愛的"},{"id":419,"page":25,"title":"Adjectives-1","en":"clean","zh":"乾淨的"},{"id":420,"page":25,"title":"Adjectives-1","en":"blue","zh":"藍色的"},{"id":421,"page":25,"title":"Adjectives-1","en":"black","zh":"黑色的"},{"id":422,"page":25,"title":"Adjectives-1","en":"red","zh":"紅色的"},{"id":423,"page":25,"title":"Adjectives-1","en":"grey (UK)","zh":"灰色的"},{"id":424,"page":25,"title":"Adjectives-1","en":"big","zh":"大的"},{"id":425,"page":25,"title":"Adjectives-1","en":"gray (US)","zh":"灰色的"},{"id":426,"page":25,"title":"Adjectives-1","en":"sad","zh":"難過的"},{"id":427,"page":25,"title":"Adjectives-1","en":"pink","zh":"粉紅色的"},{"id":428,"page":25,"title":"Adjectives-1","en":"new","zh":"新的"},{"id":429,"page":25,"title":"Adjectives-1","en":"your","zh":"你(們)的"},{"id":430,"page":25,"title":"Adjectives-1","en":"old","zh":"舊的"},{"id":431,"page":25,"title":"Adjectives-1","en":"my","zh":"我的"},{"id":432,"page":26,"title":"Adjectives-2","en":"open","zh":"開放的"},{"id":433,"page":26,"title":"Adjectives-2","en":"purple","zh":"紫色的"},{"id":434,"page":26,"title":"Adjectives-2","en":"silly","zh":"傻的"},{"id":435,"page":26,"title":"Adjectives-2","en":"orange","zh":"橘色的"},{"id":436,"page":26,"title":"Adjectives-2","en":"paper","zh":"紙做的"},{"id":437,"page":26,"title":"Adjectives-2","en":"double","zh":"兩倍的"},{"id":438,"page":26,"title":"Adjectives-2","en":"scary","zh":"恐怖的"},{"id":439,"page":26,"title":"Adjectives-2","en":"closed","zh":"關上的"},{"id":440,"page":26,"title":"Adjectives-2","en":"short","zh":"短的"},{"id":441,"page":26,"title":"Adjectives-2","en":"English","zh":"英語的"},{"id":442,"page":26,"title":"Adjectives-2","en":"white","zh":"白色的"},{"id":443,"page":26,"title":"Adjectives-2","en":"beautiful","zh":"美麗的"},{"id":444,"page":26,"title":"Adjectives-2","en":"right","zh":"正確的"},{"id":445,"page":26,"title":"Adjectives-2","en":"correct","zh":"正確的"},{"id":446,"page":26,"title":"Adjectives-2","en":"green","zh":"綠色的"},{"id":447,"page":26,"title":"Adjectives-2","en":"young","zh":"年輕的"},{"id":448,"page":26,"title":"Adjectives-2","en":"small","zh":"小的"},{"id":449,"page":26,"title":"Adjectives-2","en":"yellow","zh":"黃色的"},{"id":450,"page":26,"title":"Adjectives-2","en":"brown","zh":"咖啡色的"},{"id":451,"page":27,"title":"Adverbs","en":"then","zh":"然後"},{"id":452,"page":27,"title":"Adverbs","en":"yes","zh":"對"},{"id":453,"page":27,"title":"Adverbs","en":"today","zh":"今天"},{"id":454,"page":27,"title":"Adverbs","en":"no","zh":"不"},{"id":455,"page":27,"title":"Adverbs","en":"again","zh":"再一次"},{"id":456,"page":27,"title":"Adverbs","en":"home","zh":"家"},{"id":457,"page":27,"title":"Adverbs","en":"a lot","zh":"很多地"},{"id":458,"page":27,"title":"Adverbs","en":"lots","zh":"很多地"},{"id":459,"page":27,"title":"Adverbs","en":"there","zh":"那裡"},{"id":460,"page":27,"title":"Adverbs","en":"too","zh":"也"},{"id":461,"page":27,"title":"Adverbs","en":"very","zh":"非常"},{"id":462,"page":27,"title":"Adverbs","en":"now","zh":"現在"},{"id":463,"page":27,"title":"Adverbs","en":"here","zh":"這裡"},{"id":464,"page":27,"title":"Adverbs","en":"not","zh":"不是"},{"id":465,"page":27,"title":"Adverbs","en":"really","zh":"真地"},{"id":466,"page":28,"title":"Prepositions","en":"like","zh":"像"},{"id":467,"page":28,"title":"Conjunctions","en":"but","zh":"但是"},{"id":468,"page":28,"title":"Conjunctions","en":"or","zh":"或是"},{"id":469,"page":28,"title":"Prepositions","en":"with","zh":"和…一起"},{"id":470,"page":28,"title":"Prepositions","en":"for","zh":"給…"},{"id":471,"page":28,"title":"Prepositions","en":"from","zh":"從…"},{"id":472,"page":28,"title":"Prepositions","en":"in front of","zh":"在…前面"},{"id":473,"page":28,"title":"Prepositions","en":"between","zh":"在…之間"},{"id":474,"page":28,"title":"Conjunctions","en":"and","zh":"和"},{"id":475,"page":28,"title":"Prepositions","en":"next to","zh":"在…旁邊"},{"id":476,"page":28,"title":"Prepositions","en":"on","zh":"在……上面"},{"id":477,"page":28,"title":"Prepositions","en":"behind","zh":"在…後面"},{"id":478,"page":28,"title":"Prepositions","en":"of","zh":"的"},{"id":479,"page":28,"title":"Prepositions","en":"under","zh":"在下面"},{"id":480,"page":28,"title":"Prepositions","en":"in","zh":"在…裡面"},{"id":481,"page":28,"title":"Prepositions","en":"to","zh":"給/對"},{"id":482,"page":28,"title":"Prepositions","en":"about","zh":"大約"},{"id":483,"page":28,"title":"Prepositions","en":"at","zh":"在…"},{"id":484,"page":29,"title":"Pronouns-1","en":"they","zh":"他們/它們/牠們(主格)"},{"id":485,"page":29,"title":"Pronouns-1","en":"us","zh":"我們(受格)"},{"id":486,"page":29,"title":"Pronouns-1","en":"we","zh":"我們(主格)"},{"id":487,"page":29,"title":"Pronouns-1","en":"it","zh":"它/牠(受格)"},{"id":488,"page":29,"title":"Pronouns-1","en":"it","zh":"它/牠(主格)"},{"id":489,"page":29,"title":"Pronouns-1","en":"her","zh":"她(受格)"},{"id":490,"page":29,"title":"Pronouns-1","en":"them","zh":"他們/它們/牠們(受格)"},{"id":491,"page":29,"title":"Pronouns-1","en":"him","zh":"他(受格)"},{"id":492,"page":29,"title":"Pronouns-1","en":"he","zh":"他(主格)"},{"id":493,"page":29,"title":"Pronouns-1","en":"you","zh":"你/你們(受格)"},{"id":494,"page":29,"title":"Pronouns-1","en":"you","zh":"你/你們(主格)"},{"id":495,"page":29,"title":"Pronouns-1","en":"me","zh":"我(受格)"},{"id":496,"page":29,"title":"Pronouns-1","en":"I","zh":"我(主格)"},{"id":497,"page":29,"title":"Pronouns-1","en":"she","zh":"她(主格)"},{"id":498,"page":30,"title":"Pronouns-2","en":"theirs","zh":"他們的/它們的/牠們的(所有格代名詞)"},{"id":499,"page":30,"title":"Pronouns-2","en":"their","zh":"他們的/它們的/牠們的(所有格)"},{"id":500,"page":30,"title":"Pronouns-2","en":"ours","zh":"我們的(所有格代名詞)"},{"id":501,"page":30,"title":"Pronouns-2","en":"our","zh":"我們的(所有格)"},{"id":502,"page":30,"title":"Pronouns-2","en":"its","zh":"它的/牠的(所有格代名詞)"},{"id":503,"page":30,"title":"Pronouns-2","en":"its","zh":"它的/牠的(所有格)"},{"id":504,"page":30,"title":"Pronouns-2","en":"hers","zh":"她的(所有格代名詞)"},{"id":505,"page":30,"title":"Pronouns-2","en":"his","zh":"他的(所有格代名詞)"},{"id":506,"page":30,"title":"Pronouns-2","en":"his","zh":"他的(所有格)"},{"id":507,"page":30,"title":"Pronouns-2","en":"yours","zh":"你的/你們的(所有格代名詞)"},{"id":508,"page":30,"title":"Pronouns-2","en":"your","zh":"你的/你們的(所有格)"},{"id":509,"page":30,"title":"Pronouns-2","en":"mine","zh":"我的(所有格代名詞)"},{"id":510,"page":30,"title":"Pronouns-2","en":"my","zh":"我的(所有格)"},{"id":511,"page":30,"title":"Pronouns-2","en":"her","zh":"她的(所有格)"},{"id":512,"page":31,"title":"Verbs-1","en":"throw","zh":"丟"},{"id":513,"page":31,"title":"Verbs-1","en":"sit (down)","zh":"坐下"},{"id":514,"page":31,"title":"Verbs-1","en":"write","zh":"寫"},{"id":515,"page":31,"title":"Verbs-1","en":"say","zh":"說"},{"id":516,"page":31,"title":"Verbs-1","en":"catch","zh":"接"},{"id":517,"page":31,"title":"Verbs-1","en":"see","zh":"看"},{"id":518,"page":31,"title":"Verbs-1","en":"stand (up)","zh":"站著"},{"id":519,"page":31,"title":"Verbs-1","en":"tell","zh":"告訴"},{"id":520,"page":31,"title":"Verbs-1","en":"run","zh":"跑"},{"id":521,"page":31,"title":"Verbs-1","en":"eat","zh":"吃"},{"id":522,"page":31,"title":"Verbs-1","en":"hit","zh":"打擊"},{"id":523,"page":31,"title":"Verbs-1","en":"draw","zh":"畫"},{"id":524,"page":31,"title":"Verbs-1","en":"get","zh":"得到"},{"id":525,"page":31,"title":"Verbs-1","en":"come","zh":"來"},{"id":526,"page":31,"title":"Verbs-1","en":"do","zh":"做"},{"id":527,"page":31,"title":"Verbs-1","en":"put","zh":"放"},{"id":528,"page":31,"title":"Verbs-1","en":"go","zh":"去"},{"id":529,"page":31,"title":"Verbs-1","en":"fly","zh":"飛"},{"id":530,"page":31,"title":"Verbs-1","en":"be","zh":"是"},{"id":531,"page":31,"title":"Verbs-1","en":"know","zh":"知道"},{"id":532,"page":32,"title":"Verbs-2","en":"find","zh":"發現"},{"id":533,"page":32,"title":"Verbs-2","en":"hold","zh":"拿著"},{"id":534,"page":32,"title":"Verbs-2","en":"wear","zh":"穿"},{"id":535,"page":32,"title":"Verbs-2","en":"have (got) (UK)","zh":"有"},{"id":536,"page":32,"title":"Verbs-2","en":"drive","zh":"開車"},{"id":537,"page":32,"title":"Verbs-2","en":"have","zh":"有"},{"id":538,"page":32,"title":"Verbs-2","en":"choose","zh":"選擇"},{"id":539,"page":32,"title":"Verbs-2","en":"read","zh":"讀"},{"id":540,"page":32,"title":"Verbs-2","en":"sing","zh":"唱"},{"id":541,"page":32,"title":"Verbs-2","en":"make","zh":"製作"},{"id":542,"page":32,"title":"Verbs-2","en":"drink","zh":"喝"},{"id":543,"page":32,"title":"Verbs-2","en":"take a picture","zh":"照相"},{"id":544,"page":32,"title":"Verbs-2","en":"give","zh":"給"},{"id":545,"page":32,"title":"Verbs-2","en":"sleep","zh":"睡覺"},{"id":546,"page":33,"title":"Verbs-3","en":"go to bed","zh":"睡覺"},{"id":547,"page":33,"title":"Verbs-3","en":"learn","zh":"學習"},{"id":548,"page":33,"title":"Verbs-3","en":"can","zh":"可以"},{"id":549,"page":33,"title":"Verbs-3","en":"clap","zh":"拍手"},{"id":550,"page":33,"title":"Verbs-3","en":"listen","zh":"聽"},{"id":551,"page":33,"title":"Verbs-3","en":"count","zh":"數"},{"id":552,"page":33,"title":"Verbs-3","en":"spell","zh":"拼(字)"},{"id":553,"page":33,"title":"Verbs-3","en":"take a photo","zh":"照相"},{"id":554,"page":33,"title":"Verbs-3","en":"let's","zh":"讓我們"},{"id":555,"page":33,"title":"Verbs-3","en":"understand","zh":"了解"},{"id":556,"page":33,"title":"Verbs-3","en":"go to sleep","zh":"去睡覺"},{"id":557,"page":33,"title":"Verbs-3","en":"swim","zh":"游泳"},{"id":558,"page":33,"title":"Verbs-3","en":"ride","zh":"騎車"},{"id":559,"page":34,"title":"Verbs-4","en":"tick","zh":"打勾"},{"id":560,"page":34,"title":"Verbs-4","en":"like","zh":"喜歡"},{"id":561,"page":34,"title":"Verbs-4","en":"show","zh":"展示"},{"id":562,"page":34,"title":"Verbs-4","en":"wave","zh":"揮"},{"id":563,"page":34,"title":"Verbs-4","en":"open","zh":"開"},{"id":564,"page":34,"title":"Verbs-4","en":"jump","zh":"跳"},{"id":565,"page":34,"title":"Verbs-4","en":"learn","zh":"學習"},{"id":566,"page":34,"title":"Verbs-4","en":"close","zh":"關"},{"id":567,"page":34,"title":"Verbs-4","en":"walk","zh":"走路"},{"id":568,"page":34,"title":"Verbs-4","en":"cross","zh":"橫越"},{"id":569,"page":34,"title":"Verbs-4","en":"talk","zh":"說"},{"id":570,"page":34,"title":"Verbs-4","en":"spell","zh":"拼音"},{"id":571,"page":34,"title":"Verbs-4","en":"test","zh":"考試"},{"id":572,"page":34,"title":"Verbs-4","en":"want","zh":"想要"},{"id":573,"page":34,"title":"Verbs-4","en":"ask","zh":"問"},{"id":574,"page":34,"title":"Verbs-4","en":"start","zh":"開始"},{"id":575,"page":34,"title":"Verbs-4","en":"add","zh":"加"},{"id":576,"page":34,"title":"Verbs-4","en":"kick","zh":"踢"},{"id":577,"page":35,"title":"Verbs-5","en":"pick up","zh":"拾起"},{"id":578,"page":35,"title":"Verbs-5","en":"love","zh":"愛"},{"id":579,"page":35,"title":"Verbs-5","en":"bounce","zh":"拍球"},{"id":580,"page":35,"title":"Verbs-5","en":"answer","zh":"回答"},{"id":581,"page":35,"title":"Verbs-5","en":"enjoy","zh":"享受"},{"id":582,"page":35,"title":"Verbs-5","en":"paint","zh":"繪畫"},{"id":583,"page":35,"title":"Verbs-5","en":"complete","zh":"完成"},{"id":584,"page":35,"title":"Verbs-5","en":"play (with)","zh":"玩"},{"id":585,"page":35,"title":"Verbs-5","en":"phone","zh":"打電話"},{"id":586,"page":35,"title":"Verbs-5","en":"live","zh":"住"},{"id":587,"page":35,"title":"Verbs-5","en":"learn","zh":"學習"},{"id":588,"page":35,"title":"Verbs-5","en":"look (at)","zh":"看"},{"id":589,"page":35,"title":"Verbs-5","en":"color","zh":"著色"},{"id":590,"page":35,"title":"Verbs-5","en":"clean","zh":"打掃"},{"id":591,"page":35,"title":"Verbs-5","en":"point","zh":"指出"},{"id":592,"page":35,"title":"Verbs-5","en":"try","zh":"試"},{"id":593,"page":35,"title":"Verbs-5","en":"watch","zh":"看"},{"id":594,"page":35,"title":"Verbs-5","en":"smile","zh":"微笑"},{"id":595,"page":35,"title":"Verbs-5","en":"stop","zh":"停止"},{"id":596,"page":36,"title":"Modals","en":"can","zh":"可以"},{"id":597,"page":36,"title":"Modals","en":"cannot / can't","zh":"不可以"},{"id":598,"page":36,"title":"Question Words","en":"pardon","zh":"請再說一次"},{"id":599,"page":36,"title":"Question Words","en":"what","zh":"什麼"},{"id":600,"page":36,"title":"Question Words","en":"how old","zh":"幾歲"},{"id":601,"page":36,"title":"Question Words","en":"who","zh":"誰"},{"id":602,"page":36,"title":"Question Words","en":"how","zh":"如何"},{"id":603,"page":36,"title":"Question Words","en":"whose","zh":"誰的"},{"id":604,"page":36,"title":"Question Words","en":"where","zh":"哪裡"},{"id":605,"page":36,"title":"Question Words","en":"how many","zh":"多少"},{"id":606,"page":36,"title":"Question Words","en":"which","zh":"哪個"}];
+    const STORAGE_KEY = "starters_cute_road_map_v2";
+    let progress = loadProgress();
+    let state = {
+      view: "map",
+      page: 1,
+      inputMode: "type",
+      questions: [],
+      qIndex: 0,
+      wrongWords: [],
+      typed: "",
+      recognizedText: "",
+      recognizing: false,
+      submitted: false,
+      isCorrect: false,
+      showHint: false,
+      roundNumber: 1
+    };
+    let ocrWorker = null, canvasStrokes = [], isDrawing = false;
+
+    async function ensureOcrWorker() {
+      if (ocrWorker) return ocrWorker;
+      if (!window.Tesseract) return null;
+      try {
+        ocrWorker = await Tesseract.createWorker("eng");
+        await ocrWorker.setParameters({ tessedit_char_whitelist: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'- " });
+        return ocrWorker;
+      } catch (e) { return null; }
+    }
+    function loadProgress() {
+      try { const d = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}"); return { passedPages: Array.isArray(d.passedPages) ? d.passedPages : [] }; } catch (e) {}
+      return { passedPages: [] };
+    }
+    function saveProgress() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(progress)); } catch (e) {} }
+    function showToast(msg) {
+      const el = document.getElementById("toast");
+      el.textContent = msg; el.classList.add("show");
+      clearTimeout(showToast._t); showToast._t = setTimeout(() => el.classList.remove("show"), 2200);
+    }
+    function speak(text) {
+      if (!("speechSynthesis" in window)) return;
+      const clean = String(text).replace(/\(UK\)|\(US\)/gi, "").split("/")[0].replace(/\(.*?\)/g, "").trim();
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(clean || text);
+      u.lang = "en-US"; u.rate = 0.88; window.speechSynthesis.speak(u);
+    }
+    function getLevels() {
+      const map = new Map();
+      for (const w of WORDS) { const p = Number(w.page) || 1; if (!map.has(p)) map.set(p, []); map.get(p).push(w); }
+      return Array.from(map.keys()).sort((a, b) => a - b).map((p) => {
+        const list = map.get(p);
+        return { page: p, title: [...new Set(list.map((x) => x.title).filter(Boolean))].join(" / "), words: list };
+      });
+    }
+    function getWordsByPage(pageNum) { return WORDS.filter((w) => Number(w.page) === Number(pageNum)); }
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+      return a;
+    }
+    function normalizeForCompare(str) {
+      return String(str || "").toLowerCase().replace(/\(uk\)|\(us\)/gi, "").replace(/[^a-z'\s-]/g, "").replace(/\s+/g, " ").trim();
+    }
+    function levenshtein(a, b) {
+      const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+      for (let j = 1; j <= b.length; j++) dp[0][j] = j;
+      for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) dp[i][j] = a[i - 1] === b[j - 1] ? dp[i - 1][j - 1] : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+      return dp[a.length][b.length];
+    }
+    function checkAnswerMatch(userInput, targetWordEn) {
+      const u = normalizeForCompare(userInput);
+      if (!u) return false;
+      const variants = String(targetWordEn).split("/").map((part) => normalizeForCompare(part)).filter(Boolean);
+      const expanded = new Set(variants);
+      for (const v of variants) { expanded.add(v.replace(/[()]/g, "")); expanded.add(v.replace(/\(.*?\)/g, "").trim()); expanded.add(v.replace(/\s+/g, "")); }
+      if (expanded.has(u) || expanded.has(u.replace(/\s+/g, ""))) return true;
+      for (const ans of expanded) if (ans.length >= 3 && levenshtein(u.replace(/\s+/g, ""), ans.replace(/\s+/g, "")) <= 1 && state.inputMode === "write") return true;
+      return false;
+    }
+    function goMap() { state.view = "map"; render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+    function openReview(pageNum) {
+      if (!getWordsByPage(pageNum).length) { showToast("這一頁沒有單字喔"); return; }
+      state.page = Number(pageNum); state.view = "review"; render(); window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function startQuiz(pageNum, customWords = null, roundNum = 1) {
+      const list = customWords || getWordsByPage(pageNum);
+      if (!list.length) return;
+      state.page = Number(pageNum); state.view = "quiz"; state.questions = shuffle(list);
+      state.qIndex = 0; state.wrongWords = []; state.typed = ""; state.recognizedText = "";
+      state.recognizing = false; state.submitted = false; state.isCorrect = false; state.showHint = false; state.roundNumber = roundNum;
+      render(); afterQuizRender(); window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function switchInputMode(mode) { if (state.submitted) return; state.inputMode = mode; state.typed = ""; state.recognizedText = ""; render(); afterQuizRender(); }
+    function afterQuizRender() {
+      if (state.inputMode === "type") setTimeout(() => { const inp = document.getElementById("answer-input"); if (inp) inp.focus(); }, 30);
+      else { setupCanvas(); ensureOcrWorker(); }
+    }
+    function handleInputChange(val) { if (state.submitted) return; state.typed = val; updateSlotsOnly(); }
+    function pressKey(ch) {
+      if (state.submitted) return;
+      if (ch === "BACK") state.typed = state.typed.slice(0, -1);
+      else if (ch === "SPACE") state.typed += " ";
+      else state.typed += ch;
+      const inp = document.getElementById("answer-input"); if (inp) inp.value = state.typed;
+      updateSlotsOnly(); afterQuizRender();
+    }
+    function updateSlotsOnly() {
+      const container = document.getElementById("slots-container");
+      if (container) container.innerHTML = renderSlotsHtml(state.questions[state.qIndex].en, state.typed);
+    }
+    function setupCanvas() {
+      const canvas = document.getElementById("write-canvas");
+      if (!canvas) return;
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(300, Math.floor(rect.width * dpr)); canvas.height = Math.floor(190 * dpr);
+      const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr); canvasStrokes = [];
+      ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, rect.width, 190);
+      ctx.strokeStyle = "#f5d0e3"; ctx.lineWidth = 1.5; ctx.setLineDash([6, 6]);
+      [48, 95, 142].forEach((y) => { ctx.beginPath(); ctx.moveTo(16, y); ctx.lineTo(rect.width - 16, y); ctx.stroke(); });
+      ctx.setLineDash([]);
+      const getPos = (e) => {
+        const r = canvas.getBoundingClientRect();
+        return { x: (e.touches ? e.touches[0].clientX : e.clientX) - r.left, y: (e.touches ? e.touches[0].clientY : e.clientY) - r.top };
+      };
+      canvas.onmousedown = (e) => { if (state.submitted) return; e.preventDefault(); isDrawing = true; const p = getPos(e); canvasStrokes.push([p]); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+      canvas.onmousemove = (e) => { if (!isDrawing || state.submitted) return; e.preventDefault(); const p = getPos(e); canvasStrokes[canvasStrokes.length - 1].push(p); ctx.lineWidth = 5; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#2b1d3a"; ctx.lineTo(p.x, p.y); ctx.stroke(); };
+      window.onmouseup = () => { isDrawing = false; };
+      canvas.ontouchstart = canvas.onmousedown; canvas.ontouchmove = canvas.onmousemove; canvas.ontouchend = () => { isDrawing = false; };
+    }
+    function clearCanvas() { if (state.submitted) return; state.recognizedText = ""; setupCanvas(); const st = document.getElementById("ocr-status"); if (st) st.textContent = "已清除畫布，請重新書寫英文單字 ✍️"; }
+    async function recognizeAndSubmitWriting() {
+      if (state.submitted || state.recognizing) return;
+      if (!canvasStrokes.length) { showToast("請先在手寫板上寫出英文單字喔！"); return; }
+      state.recognizing = true;
+      const st = document.getElementById("ocr-status"); if (st) st.textContent = "🔍 正在辨認你的手寫英文字母，請稍等...";
+      const srcCanvas = document.getElementById("write-canvas"), off = document.createElement("canvas");
+      off.width = srcCanvas.width; off.height = srcCanvas.height;
+      const octx = off.getContext("2d"), dpr = window.devicePixelRatio || 1;
+      octx.scale(dpr, dpr); octx.fillStyle = "#ffffff"; octx.fillRect(0, 0, off.width / dpr, off.height / dpr);
+      octx.lineWidth = 6; octx.lineCap = "round"; octx.lineJoin = "round"; octx.strokeStyle = "#000000";
+      for (const stroke of canvasStrokes) { if (!stroke.length) continue; octx.beginPath(); octx.moveTo(stroke[0].x, stroke[0].y); for (let i = 1; i < stroke.length; i++) octx.lineTo(stroke[i].x, stroke[i].y); octx.stroke(); }
+      let detected = "";
+      try { const worker = await ensureOcrWorker(); if (worker) { const res = await worker.recognize(off); detected = (res?.data?.text || "").replace(/[^a-zA-Z'\s-]/g, "").trim(); } } catch (e) {}
+      state.recognizing = false; state.recognizedText = detected || "(無法辨識)"; state.typed = detected; submitAnswer(null);
+    }
+    function submitAnswer(e) {
+      if (e) e.preventDefault(); if (state.submitted) return;
+      const qWord = state.questions[state.qIndex], ok = checkAnswerMatch(state.typed, qWord.en);
+      state.submitted = true; state.isCorrect = ok;
+      if (!ok && !state.wrongWords.some((w) => w.id === qWord.id)) state.wrongWords.push(qWord);
+      render(); speak(qWord.en);
+    }
+    function nextQuestion() {
+      if (state.qIndex + 1 < state.questions.length) {
+        state.qIndex += 1; state.typed = ""; state.recognizedText = ""; state.submitted = false; state.isCorrect = false; state.showHint = false;
+        render(); afterQuizRender();
+      } else if (state.wrongWords.length > 0) {
+        state.view = "wrong_review"; render(); window.scrollTo({ top: 0, behavior: "smooth" });
+      } else {
+        if (!progress.passedPages.includes(state.page)) { progress.passedPages.push(state.page); saveProgress(); }
+        state.view = "pass"; render(); window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    }
+    function renderSlotsHtml(targetEn, currentTyped) {
+      const chars = Array.from(String(targetEn).replace(/\(UK\)|\(US\)/gi, "").trim()), typedChars = Array.from(currentTyped);
+      let tIdx = 0;
+      return chars.map((ch) => {
+        if (ch === " ") { if (typedChars[tIdx] === " ") tIdx++; return `<span class="slot space-slot"></span>`; }
+        const userChar = typedChars[tIdx] || ""; if (typedChars.length > tIdx) tIdx++;
+        if (!/[a-zA-Z]/.test(ch)) return `<span class="slot symbol-slot">${esc(userChar || ch)}</span>`;
+        return `<span class="slot ${userChar ? "filled" : ""}">${esc(userChar)}</span>`;
+      }).join("");
+    }
+    function render() {
+      const app = document.getElementById("app");
+      if (!app) return;
+      if (state.view === "map") app.innerHTML = renderMap();
+      else if (state.view === "review") app.innerHTML = renderReview();
+      else if (state.view === "quiz") app.innerHTML = renderQuiz();
+      else if (state.view === "wrong_review") app.innerHTML = renderWrongReview();
+      else if (state.view === "pass") app.innerHTML = renderPass();
+    }
+    function renderMap() {
+      const levels = getLevels(), clearedCount = progress.passedPages.filter((p) => levels.some((l) => l.page === p)).length;
+      const nextLv = levels.find((l) => !progress.passedPages.includes(l.page)) || levels[0];
+      const pattern = ["pos-left", "pos-center", "pos-right", "pos-center"], icons = ["🌸", "🦄", "🍓", "🎀", "🍭", "🌈", "⭐", "🧁"], sceneries = ["🌷", "☁️", "🦋", "🍄", "✨", "🏰"];
+      const rowHeight = 104, totalH = levels.length * rowHeight + 40;
+      const getX = (idx) => pattern[idx % pattern.length] === "pos-left" ? 230 : pattern[idx % pattern.length] === "pos-right" ? 570 : 400;
+      let pathD = "";
+      levels.forEach((_, idx) => {
+        const x = getX(idx), y = idx * rowHeight + 48;
+        if (idx === 0) pathD += `M ${x} ${y}`;
+        else { const px = getX(idx - 1), py = (idx - 1) * rowHeight + 48, my = (py + y) / 2; pathD += ` C ${px} ${my}, ${x} ${my}, ${x} ${y}`; }
+      });
+      return `
+        <section class="card map-hero">
+          <div><h1>🎀 夢幻單字闖關地圖（共 ${levels.length} 關）</h1><p>沿著彎彎曲曲的彩虹小路點選關卡 → <strong>先複習全部單字</strong> → <strong>打字或手寫拼英文</strong> → <strong>錯題反覆重測到全對！</strong></p></div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div class="star-badge">⭐ 已收集星星：${clearedCount} / ${levels.length}</div>
+            ${nextLv ? `<button class="btn-pink btn-sm" onclick="openReview(${nextLv.page})">出發去第 ${nextLv.page} 頁 →</button>` : ""}
+          </div>
+        </section>
+        <section class="road-map-wrapper">
+          <svg class="road-svg" viewBox="0 0 800 ${totalH}" preserveAspectRatio="none">
+            <path d="${pathD}" fill="none" stroke="#ffffff" stroke-width="44" stroke-linecap="round" />
+            <path d="${pathD}" fill="none" stroke="#ffd1e6" stroke-width="34" stroke-linecap="round" />
+            <path d="${pathD}" fill="none" stroke="#ffffff" stroke-width="4" stroke-dasharray="14 14" stroke-linecap="round" />
+          </svg>
+          <div class="road-nodes-list">
+            ${levels.map((lv, idx) => {
+              const posCls = pattern[idx % pattern.length], done = progress.passedPages.includes(lv.page), isNext = nextLv && nextLv.page === lv.page;
+              return `<div class="road-row ${posCls}"><span class="scenery-deco" style="${posCls === "pos-left" ? "right:12%;" : "left:12%;"}">${sceneries[idx % sceneries.length]}</span>
+                <div class="road-station ${done ? "cleared" : ""} ${isNext ? "next-target" : ""}" onclick="openReview(${lv.page})">
+                  ${isNext ? `<div class="avatar-pin">👧🏻 目前在這裡！</div>` : ""}
+                  <div class="station-circle"><span style="font-size:0.72rem;">PAGE</span><span>${lv.page}</span></div>
+                  <div class="station-info"><div class="station-title">${icons[idx % icons.length]} 第 ${lv.page} 頁・${esc(lv.title)}</div><div class="station-meta">共 ${lv.words.length} 個單字 ・ ${done ? "✅ 已全對過關" : "點擊開始闖關"}</div></div>
+                </div></div>`;
+            }).join("")}
+          </div>
+        </section>`;
+    }
+    function renderReview() {
+      const words = getWordsByPage(state.page), lv = getLevels().find((x) => x.page === state.page);
+      return `<section class="card stage-top"><div><span class="step-pill">🌸 步驟 1：先複習第 ${state.page} 頁全部單字（共 ${words.length} 個）</span><h2 style="margin:4px 0;">第 ${state.page} 頁：${esc(lv ? lv.title : "")}</h2><div style="color:var(--muted); font-weight:600;">先看過中文與英文拼法、按「🔊 聽發音」，準備好就開始測驗！</div></div>
+        <button class="btn-pink" onclick="startQuiz(${state.page})">複習好了，開始考全部 ${words.length} 題 →</button></section>
+        <section class="review-grid">${words.map((w, i) => `<div class="vocab-card"><div><div style="font-size:0.8rem; color:var(--muted); font-weight:700;">#${i + 1}</div><div class="vocab-zh">${esc(w.zh)}</div><div class="vocab-en">${esc(w.en)}</div></div><button class="btn-soft btn-sm" onclick="speak('${escJs(w.en)}')">🔊 聽發音</button></div>`).join("")}</section>
+        <div style="text-align:center;"><button class="btn-pink" onclick="startQuiz(${state.page})">開始考第 ${state.page} 頁全部 ${words.length} 個單字 →</button></div>`;
+    }
+    function renderQuiz() {
+      const total = state.questions.length, word = state.questions[state.qIndex], pct = Math.round(((state.qIndex + (state.submitted ? 1 : 0)) / total) * 100);
+      const rows = [["Q","W","E","R","T","Y","U","I","O","P"],["A","S","D","F","G","H","J","K","L"],["Z","X","C","V","B","N","M","BACK"]];
+      return `<section class="card quiz-center"><div class="stage-top"><button class="btn-soft btn-sm" onclick="openReview(${state.page})">← 回單字複習</button><div style="font-weight:800; color:var(--muted);">${state.roundNumber > 1 ? `🍭 錯題特訓第 ${state.roundNumber - 1} 輪` : `🎀 第 ${state.page} 頁測驗`}・第 ${state.qIndex + 1} / ${total} 題</div><button class="btn-soft btn-sm" onclick="state.showHint = !state.showHint; render(); afterQuizRender();">${state.showHint ? "🙈 隱藏提示" : "💡 小提示"}</button></div>
+        <div class="progress-track"><div class="progress-bar" style="width:${pct}%"></div></div>
+        <div class="zh-prompt-box"><div style="font-size:0.88rem; color:var(--purple); font-weight:800;">請看中文，拼出英文單字！</div><div class="zh-prompt">${esc(word.zh)}</div><div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap;"><button type="button" class="btn-purple btn-sm" onclick="speak('${escJs(word.en)}')">🔊 聽發音</button></div>${state.showHint ? `<div style="font-size:0.92rem; color:var(--pink-dark); font-weight:800; margin-top:8px;">提示：開頭是「${esc(word.en.trim().charAt(0).toUpperCase())}」</div>` : ""}</div>
+        <div class="mode-switch"><button type="button" class="mode-tab ${state.inputMode === "type" ? "active" : ""}" onclick="switchInputMode('type')">⌨️ 打字作答</button><button type="button" class="mode-tab ${state.inputMode === "write" ? "active" : ""}" onclick="switchInputMode('write')">✍️ 手寫作答</button></div>
+        ${state.inputMode === "type" ? `<div id="slots-container" class="letter-slots">${renderSlotsHtml(word.en, state.typed)}</div><form onsubmit="submitAnswer(event)" style="display:flex; flex-direction:column; align-items:center; gap:12px;"><input id="answer-input" class="type-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="在這裡輸入英文單字..." value="${esc(state.typed)}" ${state.submitted ? "disabled" : ""} oninput="handleInputChange(this.value)" />${!state.submitted ? `<button type="submit" class="btn-pink">送出答案 ✨</button>` : ""}</form>${!state.submitted ? `<div class="keypad">${rows.map((r) => `<div class="key-row">${r.map((k) => k === "BACK" ? `<button type="button" class="key-btn wide" onclick="pressKey('BACK')">⌫ 退格</button>` : `<button type="button" class="key-btn" onclick="pressKey('${k.toLowerCase()}')">${k}</button>`).join("")}</div>`).join("")}<div class="key-row"><button type="button" class="key-btn wide" style="max-width:160px;" onclick="pressKey('SPACE')">空白鍵</button></div></div>` : ""}` : `<div class="handwrite-wrap"><div class="canvas-box"><canvas id="write-canvas"></canvas></div><div id="ocr-status" class="ocr-status">${state.submitted ? `手寫辨識結果：<strong>${esc(state.recognizedText)}</strong>` : "請用手指、觸控筆或滑鼠在格子裡寫出英文單字 ✍️"}</div>${!state.submitted ? `<div style="display:flex; gap:10px; flex-wrap:wrap; justify-content:center;"><button type="button" class="btn-soft btn-sm" onclick="clearCanvas()">🧹 清除重寫</button><button type="button" class="btn-pink" onclick="recognizeAndSubmitWriting()">辨認手寫並送出 ✨</button></div>` : ""}</div>`}
+        <div class="feedback-card ${state.submitted ? "show " + (state.isCorrect ? "ok" : "err") : ""}">${state.submitted ? `<div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;"><div><div style="font-size:1.12rem; font-weight:800;">${state.isCorrect ? "🎉 答對了！拼得超棒！" : "🌷 差一點點！這題會加入錯題重測喔："}</div><div style="margin-top:4px; font-size:1.05rem;">正確英文：<strong>${esc(word.en)}</strong>（${esc(word.zh)}）${state.inputMode === "write" ? `<div style="font-size:0.88rem; opacity:0.85;">辨識到你寫的是：${esc(state.recognizedText)}</div>` : ""}</div></div><div style="display:flex; gap:8px;"><button type="button" class="btn-soft btn-sm" onclick="speak('${escJs(word.en)}')">🔊 再聽一次</button><button type="button" class="${state.isCorrect ? "btn-mint" : "btn-purple"} btn-sm" onclick="nextQuestion()">${state.qIndex + 1 < total ? "下一題 →" : "看本輪結果 →"}</button></div></div>` : ""}</div></section>`;
+    }
+    function renderWrongReview() {
+      return `<section class="card"><span class="step-pill" style="background:var(--warning-bg); color:#b45309; border-color:#fcd34d;">🍓 錯題特訓循環・直到全對才過關</span><h2 style="margin:6px 0;">這輪還有 ${state.wrongWords.length} 個單字答錯，先複習再重做一次！</h2><p style="color:var(--muted); font-weight:600;">把下面錯的單字拼法看熟、按「🔊 聽發音」，接著按「開始重做錯題」。如果重做時還有錯，會繼續針對錯題重做，直到全部答對才算通過！</p>${state.wrongWords.map((w) => `<div class="wrong-box"><div><div style="font-size:1rem; font-weight:700;">${esc(w.zh)}</div><div style="font-size:1.3rem; font-weight:800; color:var(--danger);">${esc(w.en)}</div></div><button class="btn-soft btn-sm" onclick="speak('${escJs(w.en)}')">🔊 聽發音</button></div>`).join("")}<button class="btn-pink" style="margin-top:12px;" onclick="startQuiz(state.page, state.wrongWords, state.roundNumber + 1)">開始重做這 ${state.wrongWords.length} 個錯題 →</button></section>`;
+    }
+    function renderPass() {
+      const levels = getLevels(), idx = levels.findIndex((l) => l.page === state.page), nextLv = idx >= 0 && idx + 1 < levels.length ? levels[idx + 1] : null;
+      return `<section class="card" style="text-align:center; padding:34px 18px; background:linear-gradient(135deg, #fff5fa 0%, #f0fff7 100%);"><div style="font-size:2.6rem;">👑⭐🎉</div><h2 style="margin:8px 0; color:#15803d;">太厲害了！第 ${state.page} 頁全對通過！</h2><p style="color:var(--muted); font-weight:600; margin:0 0 22px;">這一頁的所有單字都完全答對囉，星星已點亮！</p><div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">${nextLv ? `<button class="btn-pink" onclick="openReview(${nextLv.page})">沿著地圖前往下一關：第 ${nextLv.page} 頁 →</button>` : ""}<button class="btn-soft" onclick="goMap()">🗺️ 回闖關地圖看進度</button></div></section>`;
+    }
+    function esc(s) { return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+    function escJs(s) { return String(s ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'").replace(/\n/g, " "); }
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", render);
+    } else {
+      render();
+    }
+  </script>
+</body>
+</html>
